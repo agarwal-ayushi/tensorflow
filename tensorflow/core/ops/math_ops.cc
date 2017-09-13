@@ -499,7 +499,7 @@ Returns x + y element-wise.
 )doc");
 
 REGISTER_OP("Sub")
-    .BINARY_MORE()
+    .BINARY_FEWER()
     .SetShapeFn(shape_inference::BroadcastBinaryOpShapeFn)
     .Doc(R"doc(
 Returns x - y element-wise.
@@ -1102,6 +1102,37 @@ transpose_a: If true, "a" is transposed before multiplication.
 transpose_b: If true, "b" is transposed before multiplication.
 )doc");
 
+//
+//Added by Ayushi
+//
+
+REGISTER_OP("IntMatMul")
+    .Input("a: T")
+    .Input("b: T")
+    .Output("product: T")
+    .Attr("transpose_a: bool = false")
+    .Attr("transpose_b: bool = false")
+    .Attr("T: {half, float, double, int32, int16, complex64, complex128}")
+    .SetShapeFn(shape_inference::MatMulShape)
+    .Doc(R"doc(
+Multiply the matrix "a" by the matrix "b".
+
+The inputs must be two-dimensional matrices and the inner dimension of
+"a" (after being transposed if transpose_a is true) must match the
+outer dimension of "b" (after being transposed if transposed_b is
+true).
+
+*Note*: The default kernel implementation for MatMul on GPUs uses
+cublas.
+
+transpose_a: If true, "a" is transposed before multiplication.
+transpose_b: If true, "b" is transposed before multiplication.
+)doc");
+//
+//end of added by Ayushi
+//
+
+
 REGISTER_OP("SparseMatMul")
     .Input("a: Ta")
     .Input("b: Tb")
@@ -1146,8 +1177,7 @@ Reduces `input` along the dimensions given in `reduction_indices`. Unless
 retained with length 1.
 
 input: The tensor to reduce.
-reduction_indices: The dimensions to reduce. Must be in the range
-  `[-rank(input), rank(input))`.
+reduction_indices: The dimensions to reduce.
 keep_dims: If true, retain reduced dimensions with length 1.
 output: The reduced tensor.
 )doc");
@@ -1169,8 +1199,7 @@ Reduces `input` along the dimensions given in `reduction_indices`. Unless
 retained with length 1.
 
 input: The tensor to reduce.
-reduction_indices: The dimensions to reduce. Must be in the range
-  `[-rank(input), rank(input))`.
+reduction_indices: The dimensions to reduce.
 keep_dims: If true, retain reduced dimensions with length 1.
 output: The reduced tensor.
 )doc");
@@ -1192,8 +1221,7 @@ Reduces `input` along the dimensions given in `reduction_indices`. Unless
 retained with length 1.
 
 input: The tensor to reduce.
-reduction_indices: The dimensions to reduce. Must be in the range
-  `[-rank(input), rank(input))`.
+reduction_indices: The dimensions to reduce.
 keep_dims: If true, retain reduced dimensions with length 1.
 output: The reduced tensor.
 )doc");
@@ -1215,8 +1243,7 @@ Reduces `input` along the dimensions given in `reduction_indices`. Unless
 retained with length 1.
 
 input: The tensor to reduce.
-reduction_indices: The dimensions to reduce. Must be in the range
-  `[-rank(input), rank(input))`.
+reduction_indices: The dimensions to reduce.
 keep_dims: If true, retain reduced dimensions with length 1.
 output: The reduced tensor.
 )doc");
@@ -1238,8 +1265,7 @@ Reduces `input` along the dimensions given in `reduction_indices`. Unless
 retained with length 1.
 
 input: The tensor to reduce.
-reduction_indices: The dimensions to reduce. Must be in the range
-  `[-rank(input), rank(input))`.
+reduction_indices: The dimensions to reduce.
 keep_dims: If true, retain reduced dimensions with length 1.
 output: The reduced tensor.
 )doc");
@@ -1316,8 +1342,8 @@ Returns the index with the largest value across dimensions of a tensor.
 
 Note that in case of ties the identity of the return value is not guaranteed.
 
-dimension: int32 or int64, must be in the range `[-rank(input), rank(input))`.
-  Describes which dimension of the input Tensor to reduce across. For vectors,
+dimension: int32 or int64, 0 <= dimension < rank(input).  Describes
+  which dimension of the input Tensor to reduce across. For vectors,
   use dimension = 0.
 )doc");
 
@@ -1334,8 +1360,8 @@ Returns the index with the smallest value across dimensions of a tensor.
 
 Note that in case of ties the identity of the return value is not guaranteed.
 
-dimension: int32 or int64, must be in the range `[-rank(input), rank(input))`.
-  Describes which dimension of the input Tensor to reduce across. For vectors,
+dimension: int32 or int64, 0 <= dimension < rank(input).  Describes
+  which dimension of the input Tensor to reduce across. For vectors,
   use dimension = 0.
 )doc");
 
@@ -1663,7 +1689,7 @@ If the maximum is empty for a given segment ID `i`, it outputs the smallest poss
  `output[i] = numeric_limits<T>::min()`.
 
 <div style="width:70%; margin:auto; margin-bottom:10px; margin-top:20px;">
-<img style="width:100%" src="https://www.tensorflow.org/images/UnsortedSegmentMax.png" alt>
+<img style="width:100%" src="https://www.tensorflow.org/images/UnsortedSegmentSum.png" alt>
 </div>
 
 segment_ids: A 1-D tensor whose rank is equal to the rank of `data`'s
@@ -1830,8 +1856,7 @@ Reduces `input` along the dimensions given in `reduction_indices`. Unless
 retained with length 1.
 
 input: The tensor to reduce.
-reduction_indices: The dimensions to reduce. Must be in the range
-  `[-rank(input), rank(input))`.
+reduction_indices: The dimensions to reduce.
 keep_dims: If true, retain reduced dimensions with length 1.
 output: The reduced tensor.
 )doc");
@@ -1852,8 +1877,7 @@ Reduces `input` along the dimensions given in `reduction_indices`. Unless
 retained with length 1.
 
 input: The tensor to reduce.
-reduction_indices: The dimensions to reduce. Must be in the range
-  `[-rank(input), rank(input))`.
+reduction_indices: The dimensions to reduce.
 keep_dims: If true, retain reduced dimensions with length 1.
 output: The reduced tensor.
 )doc");
@@ -2065,34 +2089,6 @@ tf.imag(input) ==> [4.75, 5.75]
 ```
 )doc");
 
-REGISTER_OP("Angle")
-    .Input("input: T")
-    .Output("output: Tout")
-    .Attr("T: {complex64, complex128} = DT_COMPLEX64")
-    .Attr("Tout: {float, double} = DT_FLOAT")
-    .SetShapeFn(shape_inference::UnchangedShape)
-    .Doc(R"doc(
-Returns the argument of a complex number.
-
-Given a tensor `input` of complex numbers, this operation returns a tensor of
-type `float` that is the argument of each element in `input`. All elements in
-`input` must be complex numbers of the form \\(a + bj\\), where *a*
-is the real part and *b* is the imaginary part.
-
-The argument returned by this operation is of the form \\(atan2(b, a)\\).
-
-For example:
-
-```
-# tensor 'input' is [-2.25 + 4.75j, 3.25 + 5.75j]
-tf.angle(input) ==> [2.0132, 1.056]
-```
-
-@compatibility(numpy)
-Equivalent to np.angle.
-@end_compatibility
-)doc");
-
 REGISTER_OP("Conj")
     .Input("input: T")
     .Output("output: T")
@@ -2213,14 +2209,6 @@ The `reverse` and `exclusive` kwargs can also be combined:
 ```python
 tf.cumsum([a, b, c], exclusive=True, reverse=True)  # => [b + c, c, 0]
 ```
-
-x: A `Tensor`. Must be one of the following types: `float32`, `float64`,
-  `int64`, `int32`, `uint8`, `uint16`, `int16`, `int8`, `complex64`,
-  `complex128`, `qint8`, `quint8`, `qint32`, `half`.
-axis: A `Tensor` of type `int32` (default: 0). Must be in the range
-  `[-rank(x), rank(x))`.
-exclusive: If `True`, perform exclusive cumsum.
-reverse: A `bool` (default: False).
 )doc");
 
 REGISTER_OP("Cumprod")
@@ -2263,14 +2251,6 @@ The `reverse` and `exclusive` kwargs can also be combined:
 ```python
 tf.cumprod([a, b, c], exclusive=True, reverse=True)  # => [b * c, c, 1]
 ```
-
-x: A `Tensor`. Must be one of the following types: `float32`, `float64`,
-  `int64`, `int32`, `uint8`, `uint16`, `int16`, `int8`, `complex64`,
-  `complex128`, `qint8`, `quint8`, `qint32`, `half`.
-axis: A `Tensor` of type `int32` (default: 0). Must be in the range
-  `[-rank(x), rank(x))`.
-exclusive: If `True`, perform exclusive cumprod.
-reverse: A `bool` (default: False).
 )doc");
 
 REGISTER_OP("QuantizedMatMul")
@@ -2484,64 +2464,6 @@ output_min: The requested_output_min value is copied into this output.
 output_max: The requested_output_max value is copied into this output.
 out_type: The type of the output. Should be a lower bit depth than Tinput.
 
-)doc");
-
-REGISTER_OP("CompareAndBitpack")
-    .Input("input: T")
-    .Input("threshold: T")
-    .Output("output: uint8")
-    .Attr("T: {bool, float16, float32, float64, int8, int16, int32, int64}")
-    .SetShapeFn([](InferenceContext* c) {
-      ShapeHandle input;
-      TF_RETURN_IF_ERROR(c->WithRankAtLeast(c->input(0), 1, &input));
-      ShapeHandle unused;
-      TF_RETURN_IF_ERROR(c->WithRank(c->input(1), 0, &unused));
-      ShapeHandle output = input;
-      if (c->RankKnown(input)) {
-        int rank = c->Rank(input);
-        auto inner_dim = c->Dim(input, rank - 1);
-        DimensionHandle inferred_dim;
-        TF_RETURN_IF_ERROR(c->Divide(inner_dim, 8,
-                                     /* evenly_divisible */ true,
-                                     &inferred_dim));
-        TF_RETURN_IF_ERROR(
-            c->ReplaceDim(output, rank - 1, inferred_dim, &output));
-      }
-      c->set_output(0, output);
-
-      return Status::OK();
-    })
-    .Doc(R"doc(
-Compare values of `input` to `threshold` and pack resulting bits into a `uint8`.
-
-Each comparison returns a boolean `true` (if `input_value > threshold`)
-or and `false` otherwise.
-
-This operation is useful for Locality-Sensitive-Hashing (LSH) and other
-algorithms that use hashing approximations of cosine and `L2` distances;
-codes can be generated from an input via:
-
-```python
-codebook_size = 50
-codebook_bits = codebook_size * 32
-codebook = tf.get_variable('codebook', [x.shape[-1].value, codebook_bits],
-                           dtype=x.dtype,
-                           initializer=tf.orthogonal_initializer())
-codes = compare_and_threshold(tf.matmul(x, codebook), threshold=0.)
-codes = tf.bitcast(codes, tf.int32)  # go from uint8 to int32
-# now codes has shape x.shape[:-1] + [codebook_size]
-```
-
-**NOTE**: Currently, the innermost dimension of the tensor must be divisible
-by 8.
-
-Given an `input` shaped `[s0, s1, ..., s_n]`, the output is
-a `uint8` tensor shaped `[s0, s1, ..., s_n / 8]`.
-
-input: Values to compare against `threshold` and bitpack.
-threshold: Threshold to compare against.
-T: The type of the input and threshold.
-output: The bitpacked comparisons.
 )doc");
 
 REGISTER_OP("RequantizationRange")

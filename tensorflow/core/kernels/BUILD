@@ -2471,6 +2471,7 @@ cc_library(
         ":cross_op",
         ":cwise_op",
         ":fft_ops",
+        ":int_matmul_op",
         ":matmul_op",
         ":population_count_op",
         ":reduction_ops",
@@ -2578,6 +2579,36 @@ tf_kernel_library(
         "//tensorflow/core/platform/default/build_config:cublas_plugin",
     ]),
 )
+#Added Ayushi
+tf_kernel_library(
+    name = "int_matmul_op",
+    srcs = [
+        "int_matmul_op.cc",
+    ] + if_mkl([
+        "mkl_int_matmul_op.cc",
+    ]),
+    hdrs = ["int_matmul_op.h"],
+    defines = select({
+        ":xsmm": [
+            "TENSORFLOW_USE_LIBXSMM",
+            "EIGEN_USE_LIBXSMM",
+        ],
+        "//conditions:default": [],
+    }),
+    deps = MATH_DEPS + [
+        ":gpu_util_hdrs",
+    ] + select({
+        ":xsmm": [
+            "@libxsmm_archive//:xsmm_avx",
+        ],
+        "//conditions:default": [],
+    }) + if_mkl([
+        "//third_party/mkl:intel_binary_blob",
+    ]) + if_cuda([
+        "//tensorflow/core/platform/default/build_config:cublas_plugin",
+    ]),
+)
+# END AYUSHI
 
 tf_kernel_library(
     name = "reduction_ops",
